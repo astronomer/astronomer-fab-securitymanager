@@ -1,0 +1,30 @@
+pipeline:
+  style:
+    image: python:3.7-slim
+    environment:
+      PIP_DISABLE_PIP_VERSION_CHECK: 'True'
+    commands:
+    - pip install flake8 'flake8-import-order>=0.18'
+    - flake8
+
+  tests-py3:
+    image: python:3.7-slim
+    environment:
+      SLUGIFY_USES_TEXT_UNIDECODE: 'yes'
+      PIP_DISABLE_PIP_VERSION_CHECK: 'True'
+      PYTEST_ADDOPTS: "--color=yes"
+    commands:
+    - |
+        apt-get update && \
+        apt-get install --no-install-recommends -y \
+          gcc \
+          libc-dev
+    - pip install -e .
+    - python setup.py test
+
+  notify:
+    image: plugins/slack
+    secrets: [ slack_webhook ]
+    channel: platform
+    when:
+      status: [ failure ]
