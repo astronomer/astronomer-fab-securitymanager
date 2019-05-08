@@ -115,6 +115,9 @@ class AstroSecurityManagerMixin(object):
         updated to match the claims. Otherwise a new user record will be
         created.
         """
+        if request.path == '/health':
+            return super().before_request()
+
         auth_header = request.headers.get('Authorization')
 
         if not auth_header:
