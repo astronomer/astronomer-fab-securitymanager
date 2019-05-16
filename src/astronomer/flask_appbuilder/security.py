@@ -279,6 +279,8 @@ class AuthAstroJWTView(AuthView):
     If a user does not have permission, they are automatically rediected
     to the login function of this class. Since we handle everything externally
     we make this look more like an actual 403 error.
+
+    Reference to FAB: https://github.com/dpgaspar/Flask-AppBuilder/blob/fd8e323fcd59ec4b28df91e12915eeebdf293060/flask_appbuilder/security/decorators.py#L134
     """
     @expose("/access-denied/")
     def login(self):
