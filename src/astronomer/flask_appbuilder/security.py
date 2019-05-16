@@ -16,7 +16,7 @@ from logging import getLogger
 
 from flask import abort, request
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
-from flask_appbuilder.security.views import AuthView
+from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user
 from jwcrypto import jwk, jws, jwt
 
@@ -276,8 +276,12 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
 
 class AuthAstroJWTView(AuthView):
     """
-    Replace the default RemoteUser view with one that doesn't add anything
+    If a user does not have permission, they are automatically rediected
+    to the login function of this class. Since we handle everything externally
+    we make this look more like an actual 403 error.
 
-    We don't want any views for this user type.
+    Reference to FAB: https://github.com/dpgaspar/Flask-AppBuilder/blob/fd8e323fcd59ec4b28df91e12915eeebdf293060/flask_appbuilder/security/decorators.py#L134
     """
-    pass
+    @expose("/access-denied/")
+    def login(self):
+        return abort(403)
