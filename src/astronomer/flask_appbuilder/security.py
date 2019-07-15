@@ -273,6 +273,26 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
 
         return super().__init__(**kwargs)
 
+    def sync_roles(self):
+        super().sync_roles()
+
+        for (view_menu, permission) in [
+                ('UserDBModelView', 'can_userinfo'),
+                ('UserDBModelView', 'userinfoedit'),
+                ('UserInfoEditView', 'can_this_form_get'),
+                ('UserInfoEditView', 'can_this_form_post'),
+        ]:
+            self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(self.find_role("Viewer"), self.find_permission_view_menu(permission, view_menu))
+
+        for (view_menu, permission) in [
+                ('Airflow', 'can_dagrun_success'),
+                ('Airflow', 'can_dagrun_failure'),
+        ]:
+            self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+
 
 class AuthAstroJWTView(AuthView):
     """
