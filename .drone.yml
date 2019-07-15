@@ -19,6 +19,8 @@ pipeline:
         apt-get install --no-install-recommends -y \
           gcc \
           libc-dev
+    # Temporary fix - can be removed after Airflow 1.10.4 is released
+    - pip install 'flask<1.1.0'
     - pip install -e .
     - python setup.py test
 
