@@ -3,6 +3,7 @@ import uuid
 import flask_appbuilder
 from jwcrypto import jwk
 import pytest
+from sqlalchemy import event
 
 from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
 
@@ -64,7 +65,7 @@ def appbuilder(app, db, sm_class):
 
 
 @pytest.fixture
-def run_in_transaction(appbuilder, request):
+def run_in_transaction(appbuilder, db, request):
     """
     Run each test in an isolated transation that is rolledback.
 
@@ -73,19 +74,19 @@ def run_in_transaction(appbuilder, request):
     a totally fresh DB. But we do want DB isolation for each test. So we use a
     (nested) transaction so we can roll it back.
     """
-    app_context_caused_rollback = False
-
-    @appbuilder.app.teardown_appcontext
-    def pop_context(self, *args):
-        nonlocal app_context_caused_rollback
-        app_context_caused_rollback = True
 
     txn = appbuilder.session.begin_nested()
+    txn2 = appbuilder.session.begin_nested()  # noqa
+
+    @event.listens_for(db.engine, 'commit')
+    def commit(conn):
+        # We don't mind if the nested transaction is "commited" (i.e. the savepoint
+        # has been released) so long as we never issue a COMMIT instruction
+        raise RuntimeError("TestLogicError: Transaction was unexpectely commited!")
+
     yield appbuilder
-    if txn.is_active:
-        txn.rollback()
-    elif not app_context_caused_rollback:
-        raise RuntimeError("TestLogicError: Nested transaction was already closed!")
+    txn.rollback()
+    pass
 
 
 @pytest.fixture(scope='module')

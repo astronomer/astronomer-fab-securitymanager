@@ -181,6 +181,7 @@ class AstroSecurityManagerMixin(object):
                 self.manage_user_roles(user, claims['roles'])
 
             self.get_session.merge(user)
+            self.get_session.commit()
             if not login_user(user):
                 raise RuntimeError("Error logging user in!")
 
