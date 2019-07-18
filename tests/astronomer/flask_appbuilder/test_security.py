@@ -94,6 +94,8 @@ class TestAstroSecurityManagerMixin:
         assert g.user.is_anonymous is False
         assert ['Op'] == [r.name for r in g.user.roles]
 
+        assert appbuilder.sm.find_user(username=valid_claims['sub']) == g.user
+
         # Ensure that we actually wrote to the DB
         appbuilder.session.refresh(g.user)
 
