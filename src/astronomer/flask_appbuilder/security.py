@@ -297,6 +297,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         for (view_menu, permission) in [
                 ('Airflow', 'can_dagrun_success'),
                 ('Airflow', 'can_dagrun_failed'),
+                ('Airflow', 'can_failed'),
         ]:
             self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
             self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
