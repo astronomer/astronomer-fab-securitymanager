@@ -280,16 +280,23 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         for (view_menu, permission) in [
                 ('UserDBModelView', 'can_userinfo'),
                 ('UserDBModelView', 'userinfoedit'),
+                ('UserRemoteUserModelView', 'can_userinfo'),
+                ('UserRemoteUserModelView', 'userinfoedit'),
                 ('UserInfoEditView', 'can_this_form_get'),
                 ('UserInfoEditView', 'can_this_form_post'),
         ]:
-            self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
-            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
-            self.add_permission_role(self.find_role("Viewer"), self.find_permission_view_menu(permission, view_menu))
+            perm = self.find_permission_view_menu(permission, view_menu)
+            # If we are only using the RemoteUser auth type, then the DB permissions won't exist. Just continue
+            if not perm:
+                continue
+
+            self.add_permission_role(self.find_role("User"), perm)
+            self.add_permission_role(self.find_role("Op"), perm)
+            self.add_permission_role(self.find_role("Viewer"), perm)
 
         for (view_menu, permission) in [
                 ('Airflow', 'can_dagrun_success'),
-                ('Airflow', 'can_dagrun_failure'),
+                ('Airflow', 'can_dagrun_failed'),
         ]:
             self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
             self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
