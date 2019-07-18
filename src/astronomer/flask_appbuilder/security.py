@@ -32,7 +32,7 @@ except ImportError:
         EXISTING_ROLES = []
 
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 log = getLogger(__name__)
 
