@@ -20,6 +20,10 @@ from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user
 from jwcrypto import jwk, jws, jwt
 
+
+from flask_appbuilder.security.sqla import models as sqla_models
+from sqlalchemy import or_
+
 try:
     from airflow.www_rbac.security import AirflowSecurityManager, EXISTING_ROLES
 except ImportError:
@@ -301,6 +305,33 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         ]:
             self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
             self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+
+
+    def clean_perms(self):
+        """
+        FAB leaves faulty permissions that need to be cleaned up
+        """
+        self.log.info('Cleaning faulty perms')
+        sesh = self.get_session
+        pvms = (
+            sesh.query(sqla_models.PermissionView)
+            .filter(or_(
+                sqla_models.PermissionView.permission == None,  # NOQA
+                sqla_models.PermissionView.view_menu == None,  # NOQA
+            ))
+        )
+        # Since FAB doesn't define ON DELETE CASCADE on these tables, we need
+        # to delete the _object_ so that SQLA knows to delete the many-to-many
+        # relationship object too. :(
+
+        deleted_count = 0
+        for pvm in pvms:
+            sesh.delete(pvm)
+            deleted_count += 1
+        sesh.commit()
+        if deleted_count:
+            self.log.info('Deleted %s faulty permissions', deleted_count)
+
 
 
 class AuthAstroJWTView(AuthView):
