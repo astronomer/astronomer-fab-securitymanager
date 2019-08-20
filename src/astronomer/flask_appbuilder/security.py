@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 from logging import getLogger
+import os
 
 from flask import abort, request
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
@@ -28,7 +29,8 @@ except ImportError:
     except ImportError:
         # Airflow not installed, likely we are running setup.py to _install_ things
         class AirflowSecurityManager(object):
-            pass
+            def __init__(self, appbuilder):
+                pass
         EXISTING_ROLES = []
 
 
@@ -252,14 +254,16 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         from airflow.configuration import conf
         from airflow.exceptions import AirflowConfigException
 
-        with open(conf.get('astronomer', 'jwt_signing_cert'), 'rb') as fh:
-            jwt_signing_cert = jwk.JWK.from_pem(fh.read())
+        self.jwt_signing_cert_mtime = 0
+
+        self.jwt_signing_cert_path = conf.get('astronomer', 'jwt_signing_cert')
+        self.reload_jwt_signing_cert()
 
         allowed_audience = conf.get('astronomer', 'jwt_audience')
 
         kwargs = {
             'appbuilder': appbuilder,
-            'jwt_signing_cert': jwt_signing_cert,
+            'jwt_signing_cert': self.jwt_signing_cert,
             'allowed_audience': allowed_audience,
             'roles_to_manage': EXISTING_ROLES,
         }
@@ -272,7 +276,28 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         except AirflowConfigException:
             pass
 
-        return super().__init__(**kwargs)
+        super().__init__(**kwargs)
+
+    def reload_jwt_signing_cert(self):
+        """
+        Reload (or load) the JWT signing cert from disk if the file has been modified.
+        """
+        stat = os.stat(self.jwt_signing_cert_path)
+        if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
+            log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
+            with open(self.jwt_signing_cert_path, 'rb') as fh:
+                self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
+                # This does a second stat, but only when changed, and ensures
+                # that the time we record matches _exactly_ the time of the
+                # file we opened.
+                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime
+
+    def before_request(self):
+        # To avoid making lots of stat requests don't do this for static
+        # assets, just Airflow pages and API endpoints
+        if not request.path.startswith("/static/"):
+            self.reload_jwt_signing_cert()
+        return super().before_request()
 
     def sync_roles(self):
         super().sync_roles()
