@@ -284,13 +284,14 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         """
         stat = os.stat(self.jwt_signing_cert_path)
         if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
-            log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
+            log.info('Loading Astronomer JWT signing cert from %s as %d is > %d', self.jwt_signing_cert_path, stat.st_mtime_ns, self.jwt_signing_cert_mtime)
             with open(self.jwt_signing_cert_path, 'rb') as fh:
                 self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
                 # This does a second stat, but only when changed, and ensures
                 # that the time we record matches _exactly_ the time of the
                 # file we opened.
                 self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime
+                log.info('Setting jwt_signing_cert_mtime to %d', self.jwt_signing_cert_mtime)
 
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
