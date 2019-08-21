@@ -290,7 +290,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                 # This does a second stat, but only when changed, and ensures
                 # that the time we record matches _exactly_ the time of the
                 # file we opened.
-                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime
+                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
 
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
