@@ -14,7 +14,7 @@
 import os
 import re
 
-from setuptools import find_namespace_packages, setup, Command
+from setuptools import Command, find_namespace_packages, setup
 
 
 def fpath(*parts):
