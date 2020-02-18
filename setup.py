@@ -14,7 +14,7 @@
 import os
 import re
 
-from setuptools import find_namespace_packages, setup
+from setuptools import find_namespace_packages, setup, Command
 
 
 def fpath(*parts):
@@ -38,16 +38,40 @@ def find_version(*paths):
     raise RuntimeError("Unable to find version string.")
 
 
+# Cribbed from https://circleci.com/blog/continuously-deploying-python-packages-to-pypi-with-circleci/
+class VerifyVersionCommand(Command):
+    """Custom command to verify that the git tag matches our version"""
+    description = 'verify that the git tag matches our version'
+    user_options = []  # type: ignore
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        tag = os.getenv('CIRCLE_TAG')
+
+        if tag != "v" + VERSION:
+            info = "Git tag: {0} does not match the version of this app: v{1}".format(
+                tag, VERSION
+            )
+            exit(info)
+
+
+VERSION = find_version('src', 'astronomer', 'flask_appbuilder', 'security.py')
+
 setup(
     name='astronomer-fab-security-manager',
-    version=find_version('src', 'astronomer', 'flask_appbuilder', 'security.py'),
+    version=VERSION,
     url='https://github.com/astronomer/astronomer-fab-securitymanager',
     license='Apache2',
     author='astronomerio',
     author_email='humans@astronomer.io',
     description='Flask-AppBuilder SecurityManager for Astronomer Platform',
     long_description=desc(),
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     package_dir={'': 'src'},
     packages=find_namespace_packages(where='src'),
     package_data={'': ['LICENSE']},
@@ -62,12 +86,18 @@ setup(
     ],
     setup_requires=[
         'pytest-runner~=4.0',
+        'wheel',
     ],
     tests_require=[
-        "pytest",
-        "pytest-flask",
-        "pytest-mock",
+        'astronomer-fab-security-manager[test]'
     ],
+    extras_require={
+        'test': [
+            'pytest',
+            'pytest-flask',
+            'pytest-mock',
+        ]
+    },
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
@@ -77,4 +107,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 3',
     ],
+    cmdclass={"verify": VerifyVersionCommand}
 )
