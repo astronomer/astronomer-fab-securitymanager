@@ -51,6 +51,7 @@ jobs:
       - run:
           name: check_style
           command: |
+            . .venv/bin/activate
             flake8
       - run:
           name: run_tests
