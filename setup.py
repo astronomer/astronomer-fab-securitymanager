@@ -93,6 +93,8 @@ setup(
     ],
     extras_require={
         'test': [
+            'flake8',
+            'flake8-import-order>=0.18',
             'pytest',
             'pytest-flask',
             'pytest-mock',

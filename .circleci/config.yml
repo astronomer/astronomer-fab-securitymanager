@@ -49,6 +49,10 @@ jobs:
             - ".venv"
             - "~/.cache"
       - run:
+          name: check_style
+          command: |
+            flake8
+      - run:
           name: run_tests
           command: |
             . .venv/bin/activate
