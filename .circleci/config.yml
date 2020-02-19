@@ -98,11 +98,11 @@ jobs:
           # Even though there is a project field in the JSON credential, gsutil still needs a project set, so lets set pull it from it
           command: |-
             pip-release-utilities/gsutil-auth-helper.sh
-            gsutil -m rsync -a public-read /tmp/workspace/dist/ gs://<< pipeline.parameters.deploy_bucket >>/simple/
+            gsutil -m rsync -a public-read /tmp/workspace/dist/ gs://<< pipeline.parameters.deploy_bucket >>/simple/astronomer-fab-security-manager
       - run:
           name: Rebuild index.html
           command: |-
-            pip-release-utilities/build-index-page.sh "<< pipeline.parameters.deploy_bucket >>"
+            pip-release-utilities/build-index-page.sh "<< pipeline.parameters.deploy_bucket >>" simple/astronomer-fab-security-manager
       - store_artifacts:
           path: /tmp/workspace/dist/
           destination: dist
