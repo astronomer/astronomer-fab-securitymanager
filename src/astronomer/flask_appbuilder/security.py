@@ -327,6 +327,11 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
             self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
             self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
 
+        for (view_menu, permission) in [
+                ('VariableModelView', 'varexport'),
+        ]:
+            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+
 
 class AuthAstroJWTView(AuthView):
     """
