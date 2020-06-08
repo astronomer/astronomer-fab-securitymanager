@@ -34,6 +34,12 @@ def db(app, sm_class):
 @pytest.fixture(scope='module')
 def appbuilder(app, db, sm_class):
     from flask_appbuilder import AppBuilder
+    from flask_appbuilder.forms import FieldConverter
+   
+    # Un-monkey patch airflow
+    FieldConverter.conversion_table = (
+        (fn, field, widget) for fn,field,widget in FieldConverter.conversion_table if fn != 'is_utcdatetime'
+    )
 
     appbuilder = AppBuilder(app, db.session, security_manager_class=sm_class)
 

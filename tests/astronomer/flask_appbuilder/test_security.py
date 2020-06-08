@@ -9,6 +9,8 @@ import pytest
 from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
 
 AUDIENCE = 'airflow.example.com'
+
+
 @pytest.fixture(scope='session')
 def allowed_audience():
     return AUDIENCE
