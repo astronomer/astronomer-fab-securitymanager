@@ -27,7 +27,7 @@ from from astronomer.flask_appbuilder.security import AirflowAstroSecurityManage
 
 AUTH_TYPE = AUTH_REMOTE_USER
 ...
-SECURITY_MANAGER_CLASS = AirflowOIDCSecurityManager
+SECURITY_MANAGER_CLASS = AirflowAstroSecurityManager
 ```
 
 This file won't exist until you've run the Airflow webserver at least once in RBAC mode:
@@ -48,7 +48,7 @@ easiest way of setting this is via environment variables prefixed with
 For a list of current settings check out the inline documentation in
 [security.py](astronomer/flask_appbuilder/security.py)
 
-Copyright © 2019 Astronomer Inc. See [LICENSE](./LICENSE) for further details.
+Copyright © 2019-2020 Astronomer Inc. See [LICENSE](./LICENSE) for further details.
 
 [Airflow]: https://airflow.apache.org/
 [Security Manager]: https://flask-appbuilder.readthedocs.io/en/latest/security.html#your-custom-security
