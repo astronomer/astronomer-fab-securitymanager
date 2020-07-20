@@ -159,8 +159,11 @@ class AstroSecurityManagerMixin(object):
         if not isinstance(claims['roles'], list):
             abort(403)
 
+        log.error(f"{current_user.__dict__}")
         if current_user.is_anonymous:
             user = self.find_user(username=claims['sub'])
+            log.error(f"{claims}")
+            log.error(f"{user}")
             if user is None:
                 log.info('Creating airflow user details for %s from JWT', claims['email'])
                 user = self.user_model(
