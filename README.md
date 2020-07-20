@@ -17,7 +17,7 @@ in the future)
 
 Airflow provides a hook in the `webserver_config.py` file where you can specify
 a security manager class. In `webserver_config.py` (in AIRFLOW_HOME,
-`~/airflow/` by defaylt) import the class and set
+`~/airflow/` by default) import the class and set
 
 ```python
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
