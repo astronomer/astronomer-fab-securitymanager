@@ -165,7 +165,7 @@ class AstroSecurityManagerMixin(object):
             user = self.find_user(username=claims['sub'])
             log.error(f"Claims {claims}")
             log.error(f"User {user}")
-            log.error(f"request ctx stack {_request_ctx_stack._local}")
+            log.error(f"request ctx stack {_request_ctx_stack._local.request}")
             
             if user is None:
                 log.info('Creating airflow user details for %s from JWT', claims['email'])
