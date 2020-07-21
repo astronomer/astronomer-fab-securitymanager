@@ -15,7 +15,7 @@ import json
 from logging import getLogger
 import os
 
-from flask import abort, request, _request_ctx_stack
+from flask import abort, request, _request_ctx_stack, has_request_context
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user
@@ -164,8 +164,9 @@ class AstroSecurityManagerMixin(object):
         if current_user.is_anonymous:
             user = self.find_user(username=claims['sub'])
             log.error(f"Claims {claims}")
-            log.error(f"User {user}")
-            log.error(f"request ctx stack {_request_ctx_stack._local.request}")
+            log.error(f"has_request_context() {has_request_context()}")
+            log.error(f"hasattr(_request_ctx_stack.top, 'user') {hasattr(_request_ctx_stack.top, 'user')}")
+            # log.error(f"request ctx stack {_request_ctx_stack._local.request}")
             
             if user is None:
                 log.info('Creating airflow user details for %s from JWT', claims['email'])
