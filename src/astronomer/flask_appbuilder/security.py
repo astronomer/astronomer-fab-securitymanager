@@ -167,6 +167,7 @@ class AstroSecurityManagerMixin(object):
             log.error(f"has_request_context() {has_request_context()}")
             log.error(f"hasattr(_request_ctx_stack.top, 'user') {hasattr(_request_ctx_stack.top, 'user')}")
             log.error(f"user attribute {getattr(_request_ctx_stack.top, 'user', None)}")
+            log.error(f"Request Headers {dict(request.headers)}")
             # log.error(f"request ctx stack {_request_ctx_stack._local.request}")
             
             if user is None:
