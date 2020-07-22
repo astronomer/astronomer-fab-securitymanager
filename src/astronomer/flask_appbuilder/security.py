@@ -291,6 +291,8 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
 
         super().__init__(**kwargs)
         self.lm.request_loader = loaddddd
+        log.warning(f"lm: {self.lm.request_loader}")
+        log.warning(f"jwt_manager: {self.jwt_manager}")
 
     def reload_jwt_signing_cert(self):
         """
