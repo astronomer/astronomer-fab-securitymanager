@@ -18,7 +18,7 @@ import os
 from flask import abort, request, _request_ctx_stack, has_request_context, current_app, session
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, login_manager
 from jwcrypto import jwk, jws, jwt
 
 try:
@@ -357,3 +357,8 @@ class AuthAstroJWTView(AuthView):
     @expose("/access-denied/")
     def login(self):
         return abort(403)
+
+@login_manager.request_loader
+def loaddddd(request):
+    log.error(f"REQUEST LOADED BITCHES")
+    return None
