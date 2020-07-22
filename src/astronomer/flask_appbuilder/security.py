@@ -268,7 +268,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         from airflow.exceptions import AirflowConfigException
 
         self.jwt_signing_cert_mtime = 0
-
+        # self.lm = 
         self.jwt_signing_cert_path = conf.get('astronomer', 'jwt_signing_cert')
         self.reload_jwt_signing_cert()
 
@@ -290,6 +290,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
             pass
 
         super().__init__(**kwargs)
+        self.lm.request_loader = loaddddd
 
     def reload_jwt_signing_cert(self):
         """
@@ -358,7 +359,6 @@ class AuthAstroJWTView(AuthView):
     def login(self):
         return abort(403)
 
-@login_manager.request_loader
 def loaddddd(request):
     log.error(f"REQUEST LOADED BITCHES")
     return None
