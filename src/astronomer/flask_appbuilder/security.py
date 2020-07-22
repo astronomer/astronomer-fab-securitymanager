@@ -170,8 +170,8 @@ class AstroSecurityManagerMixin(object):
             log.error(f"Request Headers {dict(request.headers)}")
             log.error(f"Session {dict(session)}")
             log.error(f"current_app.config {dict(current_app.config)}")
-            log.error(f"current_app.login_manager._user_callback {current_app.login_manager._user_callback}")
-            log.error(f"current_app.login_manager._request_callback {current_app.login_manager._request_callback}")
+            log.error(f"current_app.login_manager {current_app.login_manager.__dict__}")
+            # log.error(f"current_app.login_manager._request_callback {current_app.login_manager._request_callback}")
             # log.error(f"request ctx stack {_request_ctx_stack._local.request}")
             
             if user is None:
