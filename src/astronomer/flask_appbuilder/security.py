@@ -100,7 +100,7 @@ class AstroSecurityManagerMixin(object):
 
     def before_request(self):
         """
-        Validate  the JWT token provider in the ``Authorization`` HTTP header
+        Validate the JWT token provider in the ``Authorization`` HTTP header
         and log in the user.
 
         There is no separate Log In view for this SecurityManager - it is
@@ -159,19 +159,19 @@ class AstroSecurityManagerMixin(object):
         if not isinstance(claims['roles'], list):
             abort(403)
 
-        log.error(f"Current_user : {current_user.__dict__}")
-        log.error(f"Anonymous : {current_user.is_anonymous}")
+        # log.error(f"Current_user : {current_user.__dict__}")
+        # log.error(f"Anonymous : {current_user.is_anonymous}")
         if current_user.is_anonymous:
             user = self.find_user(username=claims['sub'])
-            log.error(f"Claims {claims}")
-            log.error(f"has_request_context() {has_request_context()}")
-            log.error(f"hasattr(_request_ctx_stack.top, 'user') {hasattr(_request_ctx_stack.top, 'user')}")
-            log.error(f"user attribute {getattr(_request_ctx_stack.top, 'user', None)}")
-            log.error(f"Request Headers {dict(request.headers)}")
-            log.error(f"Session {dict(session)}")
-            log.error(f"current_app.config {dict(current_app.config)}")
-            log.error(f"current_app.login_manager {current_app.login_manager.__dict__}")
-            # log.error(f"current_app.login_manager._request_callback {current_app.login_manager._request_callback}")
+            # log.error(f"Claims {claims}")
+            # log.error(f"has_request_context() {has_request_context()}")
+            # log.error(f"hasattr(_request_ctx_stack.top, 'user') {hasattr(_request_ctx_stack.top, 'user')}")
+            # log.error(f"user attribute {getattr(_request_ctx_stack.top, 'user', None)}")
+            # log.error(f"Request Headers {dict(request.headers)}")
+            # log.error(f"Session {dict(session)}")
+            # log.error(f"current_app.config {dict(current_app.config)}")
+            # log.error(f"current_app.login_manager {current_app.login_manager.__dict__}")
+            # log.error(f"current_app.login_manager._request_callback {current_app.login_masqnager._request_callback}")
             # log.error(f"request ctx stack {_request_ctx_stack._local.request}")
             
             if user is None:
@@ -290,9 +290,8 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
             pass
 
         super().__init__(**kwargs)
-        self.lm.request_loader = loaddddd
-        log.warning(f"lm: {self.lm.request_loader}")
-        log.warning(f"jwt_manager: {self.jwt_manager}")
+        # log.warning(f"lm: {self.lm.request_loader}")
+        # log.warning(f"jwt_manager: {self.jwt_manager}")
 
     def reload_jwt_signing_cert(self):
         """
@@ -360,7 +359,3 @@ class AuthAstroJWTView(AuthView):
     @expose("/access-denied/")
     def login(self):
         return abort(403)
-
-def loaddddd(request):
-    log.error(f"REQUEST LOADED BITCHES")
-    return None
