@@ -21,7 +21,7 @@ a security manager class. In `webserver_config.py` (in AIRFLOW_HOME,
 
 ```python
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
-from from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
+from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
 
 # ...
 
