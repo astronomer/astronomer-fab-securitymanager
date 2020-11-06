@@ -1,11 +1,16 @@
+import os
+import time
 import uuid
 
 import flask_appbuilder
-from jwcrypto import jwk
+from jwcrypto import jwk, jwt
 import pytest
 from sqlalchemy import event
 
+from astronomer.flask_appbuilder import current_user_backend
 from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
+
+AUDIENCE = 'airflow.example.com'
 
 
 @pytest.fixture(scope='module')
@@ -18,7 +23,11 @@ def app():
     app.config['SECRET_KEY'] = 'thisismyscretkey'
     app.config['TESTING'] = True
 
+    app.api_auth = current_user_backend
+    app.api_auth.init_app(app)
+
     @app.route("/")
+    @current_user_backend.requires_authentication
     def home():
         return "Hello"
     return app
@@ -155,3 +164,45 @@ def role(appbuilder):
         return role
 
     return role_factory
+
+
+@pytest.fixture(scope='session')
+def allowed_audience():
+    return AUDIENCE
+
+
+@pytest.fixture
+def invalid_jwt():
+    ephemeral_key = jwk.JWK(generate='oct', size=64)
+    token = jwt.JWT(header={"alg": "HS256"}, claims={"info": "I'm a signed token"})
+    token.make_signed_token(ephemeral_key)
+    return token.serialize()
+
+
+@pytest.fixture
+def signed_jwt(jwt_signing_key):
+    def jwt_factory(claims):
+        token = jwt.JWT(header={"alg": "HS256"}, claims=claims)
+        token.make_signed_token(jwt_signing_key)
+        return token.serialize()
+    return jwt_factory
+
+
+@pytest.fixture
+def valid_claims(request):
+
+    return {
+        'email': 'airflower@domain.com',
+        'roles': ['Op'],
+        'sub': str(uuid.uuid4()),
+        'full_name': 'Lucy Airflower',
+        'aud': AUDIENCE,
+        'nbf': int(time.time()),
+        'exp': int(time.time()) + 60,
+    }
+
+
+@pytest.fixture
+def airflow_config(jwt_signing_cert, monkeypatch, allowed_audience):
+    monkeypatch.setitem(os.environ, 'AIRFLOW__ASTRONOMER__JWT_SIGNING_CERT', jwt_signing_cert)
+    monkeypatch.setitem(os.environ, 'AIRFLOW__ASTRONOMER__JWT_AUDIENCE', allowed_audience)
