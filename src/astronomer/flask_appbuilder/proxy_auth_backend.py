@@ -32,9 +32,6 @@ T = TypeVar("T", bound=Callable)  # pylint: disable=invalid-name
 def requires_authentication(function: T):
     """Decorator for functions that require authentication"""
 
-    if not current_user.is_anonymous:
-        return current_user
-
     @wraps(function)
     def decorated(*args, **kwargs):
         if not current_user.is_anonymous:
