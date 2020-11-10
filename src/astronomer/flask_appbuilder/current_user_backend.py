@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Basic authentication backend"""
+"""Auth backend that uses current user value set by authentication proxy."""
 from functools import wraps
 from typing import Callable, Optional, Tuple, TypeVar, Union, cast
 
 from flask import Response
-from flask_login import current_user, login_user
+from flask_login import current_user
 from requests.auth import AuthBase
 
 CLIENT_AUTH: Optional[Union[Tuple[str, str], AuthBase]] = None
