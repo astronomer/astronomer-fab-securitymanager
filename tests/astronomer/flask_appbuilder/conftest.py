@@ -5,8 +5,8 @@ from jwcrypto import jwk
 import pytest
 from sqlalchemy import event
 
+from astronomer.flask_appbuilder import current_user_backend
 from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
-
 
 @pytest.fixture(scope='module')
 def app():
@@ -18,7 +18,11 @@ def app():
     app.config['SECRET_KEY'] = 'thisismyscretkey'
     app.config['TESTING'] = True
 
+    app.api_auth = current_user_backend
+    app.api_auth.init_app(app)
+
     @app.route("/")
+    @current_user_backend.requires_authentication
     def home():
         return "Hello"
     return app
