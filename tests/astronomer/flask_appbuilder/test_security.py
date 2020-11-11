@@ -1,12 +1,11 @@
 import os
 import time
-import uuid
 
-import pytest
-from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
 from flask import g, url_for
-from jwcrypto import jwk, jwt
+import pytest
 from tests.astronomer.flask_appbuilder.conftest import AUDIENCE
+
+from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
 
 
 @pytest.mark.usefixtures('client_class', 'run_in_transaction')

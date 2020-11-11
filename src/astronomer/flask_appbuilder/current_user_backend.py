@@ -13,7 +13,7 @@
 # limitations under the License.
 """Auth backend that uses current user value set by authentication proxy."""
 from functools import wraps
-from typing import Callable, Optional, Tuple, TypeVar, Union, cast
+from typing import Callable, cast, Optional, Tuple, TypeVar, Union
 
 from flask import Response
 from flask_login import current_user

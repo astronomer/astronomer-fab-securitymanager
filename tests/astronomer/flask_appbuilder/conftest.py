@@ -2,15 +2,16 @@ import os
 import time
 import uuid
 
-import pytest
-from astronomer.flask_appbuilder import current_user_backend
-from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
+import flask_appbuilder
 from jwcrypto import jwk, jwt
+import pytest
 from sqlalchemy import event
 
-import flask_appbuilder
+from astronomer.flask_appbuilder import current_user_backend
+from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
 
 AUDIENCE = 'airflow.example.com'
+
 
 @pytest.fixture(scope='module')
 def app():
@@ -163,7 +164,6 @@ def role(appbuilder):
         return role
 
     return role_factory
-
 
 
 @pytest.fixture(scope='session')
