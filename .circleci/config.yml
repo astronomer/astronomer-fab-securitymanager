@@ -97,6 +97,7 @@ jobs:
           name: Deploy to GCS Bucket
           # Even though there is a project field in the JSON credential, gsutil still needs a project set, so lets set pull it from it
           command: |-
+            export GOOGLE_APPLICATION_CREDENTIALS_CONTENT="${GCP_TOKEN}"
             pip-release-utilities/gsutil-auth-helper.sh
             gsutil -m rsync -a public-read /tmp/workspace/dist/ gs://<< pipeline.parameters.deploy_bucket >>/simple/astronomer-fab-security-manager
       - run:
@@ -106,4 +107,3 @@ jobs:
       - store_artifacts:
           path: /tmp/workspace/dist/
           destination: dist
-
