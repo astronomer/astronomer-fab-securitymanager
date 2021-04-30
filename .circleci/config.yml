@@ -13,7 +13,7 @@ workflows:
             tags:
               only: /.*/
       - publish:
-          context: "Pip Deploy"
+          context: "gcp-astronomer-prod"
           requires: [build]
           # Run this stage only for version-number tagged builds
           filters:
