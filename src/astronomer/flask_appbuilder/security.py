@@ -15,10 +15,10 @@ import json
 from logging import getLogger
 import os
 
-from flask import abort, request
+from flask import abort, request, session, redirect
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
-from flask_login import current_user, login_user
+from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
 
 try:
@@ -34,7 +34,7 @@ except ImportError:
         EXISTING_ROLES = []
 
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 log = getLogger(__name__)
 
@@ -117,6 +117,7 @@ class AstroSecurityManagerMixin(object):
         updated to match the claims. Otherwise a new user record will be
         created.
         """
+        print("TESTING Custom fab-sec-manager install into image 3")
         if request.path == '/health':
             return super().before_request()
 
@@ -186,6 +187,16 @@ class AstroSecurityManagerMixin(object):
             self.get_session.commit()
             if not login_user(user):
                 raise RuntimeError("Error logging user in!")
+            role_names = []
+            for role in user.roles:
+                role_names.append(role.name)
+            session["roles"] = role_names
+        else:
+            session_roles = session['roles']
+            claim_roles = claims['roles']
+            if set(session_roles) != set(claim_roles):
+                logout_user()
+                return redirect('/')
 
         super().before_request()
 
