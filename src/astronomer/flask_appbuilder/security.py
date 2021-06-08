@@ -15,7 +15,7 @@ import json
 from logging import getLogger
 import os
 
-from flask import abort, request, session, redirect
+from flask import abort, redirect, request, session
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
