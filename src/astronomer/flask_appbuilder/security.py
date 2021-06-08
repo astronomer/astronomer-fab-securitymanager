@@ -117,7 +117,6 @@ class AstroSecurityManagerMixin(object):
         updated to match the claims. Otherwise a new user record will be
         created.
         """
-        print("TESTING Custom fab-sec-manager install into image 3")
         if request.path == '/health':
             return super().before_request()
 
