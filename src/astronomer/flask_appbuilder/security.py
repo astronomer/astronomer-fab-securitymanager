@@ -15,7 +15,7 @@ import json
 from logging import getLogger
 import os
 
-from flask import abort, redirect, request, session
+from flask import abort, flash, redirect, request, session, url_for
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
@@ -34,7 +34,7 @@ except ImportError:
         EXISTING_ROLES = []
 
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 log = getLogger(__name__)
 
@@ -192,7 +192,8 @@ class AstroSecurityManagerMixin(object):
             claim_roles = claims['roles']
             if set(session_roles) != set(claim_roles):
                 logout_user()
-                return redirect('/')
+                flash('Your permission set has changed. You have been redirected to the Airflow homepage with your new permission set.')
+                return redirect(url_for('Airflow.index'))
 
         super().before_request()
 
