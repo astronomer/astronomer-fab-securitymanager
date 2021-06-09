@@ -193,7 +193,7 @@ class AstroSecurityManagerMixin(object):
             if set(session_roles) != set(claim_roles):
                 logout_user()
                 flash('Your permission set has changed. You have been redirected to the Airflow homepage with your new permission set.')
-                return redirect(url_for('Airflow.index'))
+                return redirect(url_for('IndexView.index'))
 
         super().before_request()
 
