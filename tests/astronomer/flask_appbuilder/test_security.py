@@ -72,6 +72,29 @@ class TestAstroSecurityManagerMixin:
         appbuilder.session.refresh(g.user)
         assert g.user.first_name == 'John McAirflower'
 
+    def test_signed_jwt_misaligned_roles(self, appbuilder, user, signed_jwt, valid_claims, mocker):
+        # Testing that when a misalignement between astronomer and the flask session is detected the user is logged out and redirected
+        mocker.patch.object(appbuilder.sm, 'manage_user_roles')
+
+        # sign in the user with admin role claims
+        valid_claims['full_name'] = 'John McAirflower'
+        valid_claims['sub'] = user.username
+        valid_claims['roles'] = ["Admin"]
+        jwt = signed_jwt(valid_claims)
+        resp = self.client.get(url_for('home'), headers=[('Authorization', 'Bearer ' + jwt)])
+        assert resp.status_code == 200
+        assert g.user.is_anonymous is False
+        appbuilder.sm.manage_user_roles.assert_called_with(mocker.ANY, valid_claims['roles'])
+
+        # Using same flask session navigate to home with Viewer role claims
+        appbuilder.session.refresh(g.user)
+        assert g.user.first_name == 'John McAirflower'
+        valid_claims['roles'] = ["Viewer"]
+        jwt = signed_jwt(valid_claims)
+        resp = self.client.get(url_for('home'), headers=[('Authorization', 'Bearer ' + jwt)])
+        assert resp.status_code == 302
+        assert g.user.is_anonymous is True
+
     def test_manage_user_roles__manage_all(self, appbuilder, role, user):
         """
         When sm.roles_to_manage is None (the default) then the complete list of
