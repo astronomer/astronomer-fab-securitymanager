@@ -186,10 +186,7 @@ class AstroSecurityManagerMixin(object):
             self.get_session.commit()
             if not login_user(user):
                 raise RuntimeError("Error logging user in!")
-            role_names = []
-            for role in user.roles:
-                role_names.append(role.name)
-            session["roles"] = role_names
+            session["roles"] = claims['roles']
         else:
             session_roles = session['roles']
             claim_roles = claims['roles']
