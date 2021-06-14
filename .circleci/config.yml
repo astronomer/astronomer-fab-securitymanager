@@ -104,7 +104,7 @@ jobs:
       - run:
           name: Rebuild index.html
           command: |-
-            pip-release-utilities/build-index-page.sh "pip.astronomer.io" simple/astronomer-fab-security-manager
+            pip-release-utilities/build-index-page.sh "<< pipeline.parameters.deploy_bucket >>" simple/astronomer-fab-security-manager
       - store_artifacts:
           path: /tmp/workspace/dist/
           destination: dist
