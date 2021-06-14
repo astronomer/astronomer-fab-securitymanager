@@ -85,6 +85,8 @@ jobs:
           command: |-
             # Because we are running this stage in a non-standard container we
             # need to specify the full path
+            python3 -m ensurepip
+            python3 -m pip install setuptools
             . /home/circleci/project/.venv/bin/activate
             python3 setup.py verify
       - attach_workspace:
@@ -102,7 +104,7 @@ jobs:
       - run:
           name: Rebuild index.html
           command: |-
-            pip-release-utilities/build-index-page.sh "<< pipeline.parameters.deploy_bucket >>" simple/astronomer-fab-security-manager
+            pip-release-utilities/build-index-page.sh "pip.astronomer.io" simple/astronomer-fab-security-manager
       - store_artifacts:
           path: /tmp/workspace/dist/
           destination: dist
