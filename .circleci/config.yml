@@ -42,6 +42,7 @@ jobs:
             # Use a virtual env to encapsulate everything in one folder for caching
             python -m venv .venv
             . .venv/bin/activate
+            pip install -U pip
             pip install -e '.[test]'
       - save_cache:
           key: deps-{{ .Branch }}-{{ checksum "setup.py" }}
