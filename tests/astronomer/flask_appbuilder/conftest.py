@@ -3,6 +3,7 @@ import time
 import uuid
 
 import flask_appbuilder
+import flask_appbuilder.security.sqla.manager
 from jwcrypto import jwk, jwt
 import pytest
 from sqlalchemy import event

@@ -141,6 +141,10 @@ class TestAstroSecurityManagerMixin:
         resp = self.client.get(url_for('home'), headers=[('Authorization', 'Bearer ' + jwt)])
         assert resp.status_code == 403
 
+    def test_has_access_to_user_create(self, appbuilder):
+        sm = appbuilder.sm
+        assert sm.has_access('can_create', 'Users') is False
+
 
 @pytest.mark.usefixtures('run_in_transaction', 'airflow_config')
 class TestAirflowAstroSecurityManger:
