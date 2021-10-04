@@ -308,18 +308,34 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
 
     def reload_jwt_signing_cert(self):
         """
-        Reload (or load) the JWT signing cert from disk if the file has been modified.
+        Reload (or load) the JWT signing cert from houston api
+        otherwise fallback to old logic read from dis disk if the file has been modified.
         """
         stat = os.stat(self.jwt_signing_cert_path)
-        if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
-            log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
-            with open(self.jwt_signing_cert_path, 'rb') as fh:
-                self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
-                # This does a second stat, but only when changed, and ensures
-                # that the time we record matches _exactly_ the time of the
-                # file we opened.
-                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
+        if os.path.exists(self.jwt_signing_cert_path):
+            if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
+                log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
+                with open(self.jwt_signing_cert_path, 'rb') as fh:
+                    self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
+                    # This does a second stat, but only when changed, and ensures
+                    # that the time we record matches _exactly_ the time of the
+                    # file we opened.
+                    self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
+        else:
+            host = conf.get("astronomer", "houston_host", fallback=None)
+            port = conf.get("astronomer", "houston_port", fallback=None)
+            jwks_path = conf.get(
+                "astronomer", "houston_jwks_path", fallback="/v1/.well-known/jwks.json"
+            )
+            conn = http.client.HTTPSConnection(host, port)
 
+            conn.request("GET", jwks_path)
+
+            res = conn.getresponse()
+            data = res.read()
+
+            key = data.decode("utf-8")
+            self.jwt_signing_cert = jwk.JWK.from_json(key=key)
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
         # assets, just Airflow pages and API endpoints
