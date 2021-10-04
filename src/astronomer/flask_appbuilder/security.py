@@ -322,7 +322,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                     # file we opened.
                     self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
         else:
-            host = conf.get("astronomer", "houston_host", fallback=None)
+            host = conf.get("astronomer", "houston_host")
             port = conf.get("astronomer", "houston_port", fallback=None)
             jwks_path = conf.get(
                 "astronomer", "houston_jwks_path", fallback="/v1/.well-known/jwks.json"
