@@ -230,6 +230,26 @@ class AstroSecurityManagerMixin(object):
         for role in desired:
             user.roles.append(self.find_role(role))
 
+    try:
+        # Python binding/closures are acting weird. Without this, the useage in `has_access` below can't
+        # find permissions!
+        global permissions
+        import airflow.security.permissions
+
+        # Don't let anyone create users when this Security Manager is in use -- it creates them on demand.
+        # Check they exist
+        permissions = airflow.security.permissions
+        permissions.RESOURCE_USER
+        permissions.ACTION_CAN_CREATE
+
+        def has_access(self, action_name, resource_name) -> bool:
+            if action_name == permissions.ACTION_CAN_CREATE and resource_name == permissions.RESOURCE_USER:
+                return False
+            super().has_access(action_name, resource_name)
+
+    except (ImportError, AttributeError):
+        pass
+
 
 class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityManager):
     """
