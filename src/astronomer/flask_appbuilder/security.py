@@ -16,6 +16,8 @@ from logging import getLogger
 import os
 
 from flask import abort, flash, redirect, request, session, url_for
+
+import http.client
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
@@ -322,8 +324,10 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                     # file we opened.
                     self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
         else:
+            from airflow.configuration import conf
+
             host = conf.get("astronomer", "houston_host")
-            port = conf.get("astronomer", "houston_port", fallback=None)
+            port = conf.get("astronomer", "houston_port")
             jwks_path = conf.get(
                 "astronomer", "houston_jwks_path", fallback="/v1/.well-known/jwks.json"
             )
@@ -336,6 +340,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
 
             key = data.decode("utf-8")
             self.jwt_signing_cert = jwk.JWK.from_json(key=key)
+
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
         # assets, just Airflow pages and API endpoints
