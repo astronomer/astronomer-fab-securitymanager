@@ -245,7 +245,7 @@ class AstroSecurityManagerMixin(object):
         def has_access(self, action_name, resource_name) -> bool:
             if action_name == permissions.ACTION_CAN_CREATE and resource_name == permissions.RESOURCE_USER:
                 return False
-            super().has_access(action_name, resource_name)
+            return super().has_access(action_name, resource_name)
 
     except (ImportError, AttributeError):
         pass
