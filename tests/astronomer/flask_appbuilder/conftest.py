@@ -53,9 +53,15 @@ def appbuilder(app, db, sm_class):
 
     appbuilder = AppBuilder(app, db.session, security_manager_class=sm_class)
 
-    for r in ('Admin', 'Op', 'User', 'Viewer'):
-        appbuilder.sm.add_role(r)
+    resource = appbuilder.sm.viewmenu_model(name='Website')
+    perm = appbuilder.sm.permission_model(name='can_read')
+    perm_view = appbuilder.sm.permissionview_model(view_menu=resource, permission=perm)
+    appbuilder.session.add(resource)
 
+    for r in ('Admin', 'Op', 'User', 'Viewer'):
+        r = appbuilder.sm.add_role(r)
+
+        r.permissions.append(perm_view)
     """
     from sqlalchemy import event
     @event.listens_for(db.engine, 'before_cursor_execute')
