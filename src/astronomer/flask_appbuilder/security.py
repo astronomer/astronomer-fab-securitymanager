@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import http.client
 import json
 from logging import getLogger
 import os
+from urllib.request import Request, urlopen
 
 from flask import abort, flash, redirect, request, session, url_for
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
@@ -23,8 +23,7 @@ from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
 
 try:
-    from airflow.www_rbac.security import (EXISTING_ROLES,
-                                           AirflowSecurityManager)
+    from airflow.www_rbac.security import EXISTING_ROLES, AirflowSecurityManager
 except ImportError:
     try:
         from airflow.www.security import EXISTING_ROLES, AirflowSecurityManager
@@ -33,6 +32,7 @@ except ImportError:
         class AirflowSecurityManager(object):
             def __init__(self, appbuilder):
                 pass
+
         EXISTING_ROLES = []
 
 
@@ -91,7 +91,15 @@ class AstroSecurityManagerMixin(object):
         :meth:`manage_user_roles` for behaviour of this parameter
     :type roles_to_manage: list[str] or None
     """
-    def __init__(self, appbuilder, jwt_signing_cert, allowed_audience, roles_to_manage=None, validity_leeway=60):
+
+    def __init__(
+        self,
+        appbuilder,
+        jwt_signing_cert,
+        allowed_audience,
+        roles_to_manage=None,
+        validity_leeway=60,
+    ):
         super().__init__(appbuilder)
         if self.auth_type == AUTH_REMOTE_USER:
             self.authremoteuserview = AuthAstroJWTView
@@ -119,32 +127,30 @@ class AstroSecurityManagerMixin(object):
         updated to match the claims. Otherwise a new user record will be
         created.
         """
-        if request.path == '/health':
+        if request.path == "/health":
             return super().before_request()
 
-        auth_header = request.headers.get('Authorization')
+        auth_header = request.headers.get("Authorization")
 
         if not auth_header:
             return abort(403)
 
-        if not auth_header.startswith('Bearer '):
+        if not auth_header.startswith("Bearer "):
             return abort(403)
 
         try:
             token = jwt.JWT(
                 check_claims={
                     # These must be present - any value
-                    'sub': None,
-                    'email': None,
-                    'full_name': None,
-                    'roles': None,
-
+                    "sub": None,
+                    "email": None,
+                    "full_name": None,
+                    "roles": None,
                     # Use it's built in handling - 60s leeway, 10minutes validity.
-                    'exp': None,
-                    'nbf': None,
-
+                    "exp": None,
+                    "nbf": None,
                     # This must match exactly
-                    'aud': self.allowed_audience,
+                    "aud": self.allowed_audience,
                 }
             )
 
@@ -158,44 +164,50 @@ class AstroSecurityManagerMixin(object):
             log.debug(e)
             abort(403)
 
-        if not isinstance(claims['roles'], list):
+        if not isinstance(claims["roles"], list):
             abort(403)
 
         if current_user.is_anonymous:
-            user = self.find_user(username=claims['sub'])
+            user = self.find_user(username=claims["sub"])
             if user is None:
-                log.info('Creating airflow user details for %s from JWT', claims['email'])
+                log.info(
+                    "Creating airflow user details for %s from JWT", claims["email"]
+                )
                 user = self.user_model(
                     # All we have is REMOTE_USER, so we set
                     # the other fields to blank.
-                    username=claims['sub'],
-                    first_name=claims['full_name'] or claims['email'],
-                    last_name='',
-                    email=claims['email'],
-                    roles=[self.find_role(role) for role in claims['roles']],
-                    active=True
+                    username=claims["sub"],
+                    first_name=claims["full_name"] or claims["email"],
+                    last_name="",
+                    email=claims["email"],
+                    roles=[self.find_role(role) for role in claims["roles"]],
+                    active=True,
                 )
             else:
-                log.info('Updating airflow user details for %s from JWT', claims['email'])
+                log.info(
+                    "Updating airflow user details for %s from JWT", claims["email"]
+                )
                 # Update details from JWT
-                user.username = claims['sub']
-                user.first_name = claims['full_name'] or claims['email']
-                user.last_name = ''
+                user.username = claims["sub"]
+                user.first_name = claims["full_name"] or claims["email"]
+                user.last_name = ""
                 user.active = True
-                self.manage_user_roles(user, claims['roles'])
+                self.manage_user_roles(user, claims["roles"])
 
             self.get_session.add(user)
             self.get_session.commit()
             if not login_user(user):
                 raise RuntimeError("Error logging user in!")
-            session["roles"] = claims['roles']
+            session["roles"] = claims["roles"]
         else:
-            session_roles = session['roles']
-            claim_roles = claims['roles']
+            session_roles = session["roles"]
+            claim_roles = claims["roles"]
             if set(session_roles) != set(claim_roles):
                 logout_user()
-                flash('Your permission set has changed. You have been redirected to the Airflow homepage with your new permission set.')
-                return redirect(url_for('IndexView.index'))
+                flash(
+                    "Your permission set has changed. You have been redirected to the Airflow homepage with your new permission set."
+                )
+                return redirect(url_for("IndexView.index"))
 
         super().before_request()
 
@@ -245,7 +257,10 @@ class AstroSecurityManagerMixin(object):
         permissions.ACTION_CAN_CREATE
 
         def has_access(self, action_name, resource_name) -> bool:
-            if action_name == permissions.ACTION_CAN_CREATE and resource_name == permissions.RESOURCE_USER:
+            if (
+                action_name == permissions.ACTION_CAN_CREATE
+                and resource_name == permissions.RESOURCE_USER
+            ):
                 return False
             return super().has_access(action_name, resource_name)
 
@@ -280,29 +295,30 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         Override the default leeway on validating token expiry time
 
     """
+
     def __init__(self, appbuilder):
         from airflow.configuration import conf
         from airflow.exceptions import AirflowConfigException
 
         self.jwt_signing_cert_mtime = 0
 
-        self.jwt_signing_cert_path = conf.get('astronomer', 'jwt_signing_cert')
+        self.jwt_signing_cert_path = conf.get("astronomer", "jwt_signing_cert")
         self.reload_jwt_signing_cert()
 
-        allowed_audience = conf.get('astronomer', 'jwt_audience')
+        allowed_audience = conf.get("astronomer", "jwt_audience")
 
         kwargs = {
-            'appbuilder': appbuilder,
-            'jwt_signing_cert': self.jwt_signing_cert,
-            'allowed_audience': allowed_audience,
-            'roles_to_manage': EXISTING_ROLES,
+            "appbuilder": appbuilder,
+            "jwt_signing_cert": self.jwt_signing_cert,
+            "allowed_audience": allowed_audience,
+            "roles_to_manage": EXISTING_ROLES,
         }
 
         # Airflow 1.10.2 doesn't have `fallback` support yet
         try:
-            leeway = conf.get('astronomer', 'jwt_validity_leeway', fallback=None)
+            leeway = conf.get("astronomer", "jwt_validity_leeway", fallback=None)
             if leeway is not None:
-                kwargs['validity_leeway'] = int(leeway)
+                kwargs["validity_leeway"] = int(leeway)
         except AirflowConfigException:
             pass
 
@@ -313,32 +329,29 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         Reload (or load) the JWT signing cert from houston api
         otherwise fallback to old logic read from dis disk if the file has been modified.
         """
-        stat = os.stat(self.jwt_signing_cert_path)
-        if os.path.exists(self.jwt_signing_cert_path):
+        try:
+            stat = os.stat(self.jwt_signing_cert_path)
             if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
-                log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
-                with open(self.jwt_signing_cert_path, 'rb') as fh:
+                log.info(
+                    "Loading Astronomer JWT signing cert from %s",
+                    self.jwt_signing_cert_path,
+                )
+                with open(self.jwt_signing_cert_path, "rb") as fh:
                     self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
                     # This does a second stat, but only when changed, and ensures
                     # that the time we record matches _exactly_ the time of the
                     # file we opened.
                     self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
-        else:
+        except FileNotFoundError:
             from airflow.configuration import conf
 
-            host = conf.get("astronomer", "houston_host")
-            port = conf.get("astronomer", "houston_port")
-            jwks_path = conf.get(
-                "astronomer", "houston_jwks_path", fallback="/v1/.well-known/jwks.json"
+            # Example: http://houston-astronomer:8871/v1/.well-known/jwks.json
+            houston_url = conf.get("astronomer", "houston_jwk_url")
+            httprequest = Request(
+                houston_url, method="GET", headers={"Accept": "application/json"}
             )
-            conn = http.client.HTTPSConnection(host, port)
-
-            conn.request("GET", jwks_path)
-
-            res = conn.getresponse()
-            data = res.read()
-
-            key = data.decode("utf-8")
+            with urlopen(httprequest) as response:
+                key = response.read().decode()
             self.jwt_signing_cert = jwk.JWK.from_json(key=key)
 
     def before_request(self):
@@ -352,12 +365,12 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         super().sync_roles()
 
         for (view_menu, permission) in [
-                ('UserDBModelView', 'can_userinfo'),
-                ('UserDBModelView', 'userinfoedit'),
-                ('UserRemoteUserModelView', 'can_userinfo'),
-                ('UserRemoteUserModelView', 'userinfoedit'),
-                ('UserInfoEditView', 'can_this_form_get'),
-                ('UserInfoEditView', 'can_this_form_post'),
+            ("UserDBModelView", "can_userinfo"),
+            ("UserDBModelView", "userinfoedit"),
+            ("UserRemoteUserModelView", "can_userinfo"),
+            ("UserRemoteUserModelView", "userinfoedit"),
+            ("UserInfoEditView", "can_this_form_get"),
+            ("UserInfoEditView", "can_this_form_post"),
         ]:
             perm = self.find_permission_view_menu(permission, view_menu)
             # If we are only using the RemoteUser auth type, then the DB permissions won't exist. Just continue
@@ -369,17 +382,26 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
             self.add_permission_role(self.find_role("Viewer"), perm)
 
         for (view_menu, permission) in [
-                ('Airflow', 'can_dagrun_success'),
-                ('Airflow', 'can_dagrun_failed'),
-                ('Airflow', 'can_failed'),
+            ("Airflow", "can_dagrun_success"),
+            ("Airflow", "can_dagrun_failed"),
+            ("Airflow", "can_failed"),
         ]:
-            self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
-            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(
+                self.find_role("User"),
+                self.find_permission_view_menu(permission, view_menu),
+            )
+            self.add_permission_role(
+                self.find_role("Op"),
+                self.find_permission_view_menu(permission, view_menu),
+            )
 
         for (view_menu, permission) in [
-                ('VariableModelView', 'varexport'),
+            ("VariableModelView", "varexport"),
         ]:
-            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(
+                self.find_role("Op"),
+                self.find_permission_view_menu(permission, view_menu),
+            )
 
 
 class AuthAstroJWTView(AuthView):
@@ -390,6 +412,7 @@ class AuthAstroJWTView(AuthView):
 
     Reference to FAB: https://github.com/dpgaspar/Flask-AppBuilder/blob/fd8e323fcd59ec4b28df91e12915eeebdf293060/flask_appbuilder/security/decorators.py#L134
     """
+
     @expose("/access-denied/")
     def login(self):
         return abort(403)
