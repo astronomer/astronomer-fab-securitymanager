@@ -11,23 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import http.client
 import json
 from logging import getLogger
 import os
 
 from flask import abort, flash, redirect, request, session, url_for
-
-import http.client
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
 
 try:
-    from airflow.www_rbac.security import AirflowSecurityManager, EXISTING_ROLES
+    from airflow.www_rbac.security import (EXISTING_ROLES,
+                                           AirflowSecurityManager)
 except ImportError:
     try:
-        from airflow.www.security import AirflowSecurityManager, EXISTING_ROLES
+        from airflow.www.security import EXISTING_ROLES, AirflowSecurityManager
     except ImportError:
         # Airflow not installed, likely we are running setup.py to _install_ things
         class AirflowSecurityManager(object):

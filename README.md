@@ -48,6 +48,13 @@ easiest way of setting this is via environment variables prefixed with
 For a list of current settings check out the inline documentation in
 [security.py](astronomer/flask_appbuilder/security.py)
 
+## Development
+
+To run tests with coverage:
+```
+pytest --cov=src --cov-report term-missing
+```
+
 Copyright © 2019-2020 Astronomer Inc. See [LICENSE](./LICENSE) for further details.
 
 [Airflow]: https://airflow.apache.org/
