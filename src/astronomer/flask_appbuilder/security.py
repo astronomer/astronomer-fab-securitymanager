@@ -44,14 +44,20 @@ class AstroSecurityManagerMixin(object):
     """
     Flask-AppBuilder SecurityManager mix in that auto-creates users based on
     the signed JWT token from the Astronomer platform
+
     For this security manager to function the ``AUTH_TYPE`` in your FAB
     application's config must be set to
     ``AUTH_REMOTE_USER``:
+
     .. code:: python
+
         from flask_appbuilder.security.manager import AUTH_REMOTE_USER
         AUTH_TYPE = AUTH_REMOTE_USER
+
     **Required JWT token claims**
+
     We require the following claims in the token:
+
     ``sub``
         Subject. The User ID/username. This is used to find the user record
     ``aud``
@@ -68,6 +74,8 @@ class AstroSecurityManagerMixin(object):
         will be set to email. This field is what FAB displays in the UI.
     ``roles``
         An array of role names that the user should be in. See :meth:`manage_user_roles`.
+
+
     :param appbuilder:
     :type appbuilder: flask_appbuilder.AppBuilder
     :param jwt_signing_cert: JsonWebKey that must have signed the token. Can be
@@ -95,13 +103,17 @@ class AstroSecurityManagerMixin(object):
         """
         Validate  the JWT token provider in the ``Authorization`` HTTP header
         and log in the user.
+
         There is no separate Log In view for this SecurityManager - it is
         implicit on the first request.
+
         The value of this header is required to be a ``Bearer <token>``. If
         this header is missing or the token is invalid for any reason a 403
         response will be returned.
+
         The token will be validated on every request, but the database will
         only be updated if the current session is anonymous.
+
         If a user with a username of the ``sub`` claim can be found it will be
         updated to match the claims. Otherwise a new user record will be
         created.
@@ -189,8 +201,10 @@ class AstroSecurityManagerMixin(object):
     def manage_user_roles(self, user, roles):
         """
         Manage the core roles on the user
+
         If ``self.roles_to_manage`` is an empty list or None, then the user
         will only be in the roles passed via the ``roles`` parameter.
+
         Otherwise any role that the user is a member of that is not in the
         ``self.roles_to_manage`` list will remain.
         """
@@ -243,20 +257,27 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
     This class configures the FAB SecurityManager for use in Airflow, and reads
     settings under the ``[astronomer]`` section (or environment variables prefixed
     with ``AIRFLOW__ASTRONOMER__``).
+
     This class will only manage the "core" roles built in to Airflow
     (Admin, Op, User, Viewer, Public) are correct for the given user - if a
     user is added to any custom roles the membership of those will not be
     removed.
+
     **Required Airflow Config settings:**
+
+
     ``astronmer.jwt_signing_cert``
         Path to a public key file containing the public key, in PEM format,
         that is trusted to sign JWT tokens
     ``astronomer.jwt_audience``
         The audience value to accept in JWT tokens. This should be the hostname
         of this Airflow deployment
+
     **Optioinal config settings:**
+
     ``astronomer.jwt_validity_leeway``
         Override the default leeway on validating token expiry time
+
     """
     def __init__(self, appbuilder):
         from airflow.configuration import conf
@@ -361,6 +382,7 @@ class AuthAstroJWTView(AuthView):
     If a user does not have permission, they are automatically rediected
     to the login function of this class. Since we handle everything externally
     we make this look more like an actual 403 error.
+
     Reference to FAB: https://github.com/dpgaspar/Flask-AppBuilder/blob/fd8e323fcd59ec4b28df91e12915eeebdf293060/flask_appbuilder/security/decorators.py#L134
     """
     @expose("/access-denied/")
