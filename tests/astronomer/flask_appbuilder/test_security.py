@@ -6,7 +6,7 @@ from flask import g, url_for
 import pytest
 from tests.astronomer.flask_appbuilder.conftest import AUDIENCE
 
-from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
+from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager, timed_lru_cache
 
 
 @pytest.mark.usefixtures('client_class', 'run_in_transaction')
@@ -197,3 +197,15 @@ class TestAirflowAstroSecurityManger:
         )
         AirflowAstroSecurityManager(appbuilder)
         mock_urlopen.assert_called_once()
+
+
+class TestCache():
+    def test_lru_cache_time_one_second(self):
+        @timed_lru_cache(seconds=1, maxsize=1)
+        def foo(x):
+            return x
+        assert foo(42) == 42
+        time.sleep(0.25)
+        assert foo(42) == 42
+        time.sleep(1)
+        assert foo(43) == 43

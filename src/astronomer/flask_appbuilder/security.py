@@ -11,9 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import json
 from logging import getLogger
 import os
+from time import monotonic_ns
 from urllib.request import Request, urlopen
 
 from flask import abort, flash, redirect, request, session, url_for
@@ -23,10 +25,11 @@ from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
 
 try:
-    from airflow.www_rbac.security import AirflowSecurityManager, EXISTING_ROLES
+    from airflow.www_rbac.security import (EXISTING_ROLES,
+                                           AirflowSecurityManager)
 except ImportError:
     try:
-        from airflow.www.security import AirflowSecurityManager, EXISTING_ROLES
+        from airflow.www.security import EXISTING_ROLES, AirflowSecurityManager
     except ImportError:
         # Airflow not installed, likely we are running setup.py to _install_ things
         class AirflowSecurityManager(object):
@@ -38,6 +41,39 @@ except ImportError:
 __version__ = "1.7.1"
 
 log = getLogger(__name__)
+
+
+def timed_lru_cache(
+    _func=None, *, seconds=300, maxsize=1, typed=False
+):
+    """
+    Extension of functools lru_cache with a timeout
+    seconds (int): Timeout in seconds to clear the WHOLE cache, default = 5 minutes
+    maxsize (int): Maximum Size of the Cache
+    typed (bool): Same value of different type will be a different entry
+    """
+
+    def wrapper_cache(f):
+        f = functools.lru_cache(maxsize=maxsize, typed=typed)(f)
+        f.delta = seconds * 10 ** 9
+        f.expiration = monotonic_ns() + f.delta
+
+        @functools.wraps(f)
+        def wrapped_f(*args, **kwargs):
+            if monotonic_ns() >= f.expiration:
+                f.cache_clear()
+                f.expiration = monotonic_ns() + f.delta
+            return f(*args, **kwargs)
+
+        wrapped_f.cache_info = f.cache_info
+        wrapped_f.cache_clear = f.cache_clear
+        return wrapped_f
+
+    # To allow decorator to be used without arguments
+    if _func is None:
+        return wrapper_cache
+    else:
+        return wrapper_cache(_func)
 
 
 class AstroSecurityManagerMixin(object):
@@ -325,16 +361,20 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                     # file we opened.
                     self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
         except FileNotFoundError:
-            from airflow.configuration import conf
+            self.jwt_signing_cert = self._get_jwt_key_from_houston()
 
-            # Example: http://houston-astronomer:8871/v1/.well-known/jwks.json
-            houston_url = conf.get("astronomer", "houston_jwk_url")
-            httprequest = Request(
-                houston_url, method="GET", headers={"Accept": "application/json"}
-            )
-            with urlopen(httprequest) as response:
-                key = response.read().decode()
-            self.jwt_signing_cert = jwk.JWK.from_json(key=key)
+    @timed_lru_cache
+    def _get_jwt_key_from_houston(self):
+        from airflow.configuration import conf
+
+        # Example: http://houston-astronomer:8871/v1/.well-known/jwks.json
+        houston_url = conf.get("astronomer", "houston_jwk_url")
+        httprequest = Request(
+            houston_url, method="GET", headers={"Accept": "application/json"}
+        )
+        with urlopen(httprequest) as response:
+            key = response.read().decode()
+        return jwk.JWK.from_json(key=key)
 
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
