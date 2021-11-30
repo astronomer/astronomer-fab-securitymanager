@@ -17,7 +17,8 @@ from logging import getLogger
 import os
 from time import monotonic_ns
 from urllib.request import Request, urlopen
-
+from urllib.error import HTTPError
+from airflow.exceptions import AirflowConfigException
 from flask import abort, flash, redirect, request, session, url_for
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
@@ -348,6 +349,9 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         Reload (or load) the JWT signing cert from disk if the file has been modified.
         """
         try:
+            log.info("Loading Astronomer JWT from houston jwk")
+            self.jwt_signing_cert = self._get_jwt_key_from_houston()
+        except (AirflowConfigException, HTTPError):
             stat = os.stat(self.jwt_signing_cert_path)
             if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
                 log.info(
@@ -360,8 +364,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                     # that the time we record matches _exactly_ the time of the
                     # file we opened.
                     self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
-        except FileNotFoundError:
-            self.jwt_signing_cert = self._get_jwt_key_from_houston()
+
 
     @timed_lru_cache
     def _get_jwt_key_from_houston(self):
