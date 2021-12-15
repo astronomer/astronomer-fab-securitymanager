@@ -99,6 +99,7 @@ setup(
             'pytest',
             'pytest-flask',
             'pytest-mock',
+            'pytest-cov',
         ]
     },
     classifiers=[

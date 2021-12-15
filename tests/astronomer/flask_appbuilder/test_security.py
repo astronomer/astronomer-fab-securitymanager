@@ -1,11 +1,12 @@
 import os
 import time
+from unittest.mock import MagicMock, patch
 
 from flask import g, url_for
 import pytest
 from tests.astronomer.flask_appbuilder.conftest import AUDIENCE
 
-from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager
+from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager, timed_lru_cache
 
 
 @pytest.mark.usefixtures('client_class', 'run_in_transaction')
@@ -167,3 +168,44 @@ class TestAirflowAstroSecurityManger:
         sm = AirflowAstroSecurityManager(appbuilder)
 
         assert sm.validity_leeway == leeway
+
+    @patch("astronomer.flask_appbuilder.security.urlopen")
+    def test_reload_jwt_signing_cert_valid_key(
+        self, mock_urlopen, appbuilder, monkeypatch
+    ):
+        mock = MagicMock()
+        mock.getcode.return_value = 200
+        mock.read.return_value = b"""
+{
+  "kty":"EC",
+  "crv":"P-256",
+  "x":"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+  "y":"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+  "kid":"Public key used in JWS spec Appendix A.3 example"
+}
+"""
+        mock.__enter__.return_value = mock
+        mock_urlopen.return_value = mock
+        monkeypatch.setitem(
+            os.environ,
+            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
+            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
+        )
+        # let's make it fallback to ask houston jwk houston api
+        monkeypatch.setitem(
+            os.environ, "AIRFLOW__ASTRONOMER__JWT_SIGNING_CERT", "/nonexisting"
+        )
+        AirflowAstroSecurityManager(appbuilder)
+        mock_urlopen.assert_called_once()
+
+
+class TestCache():
+    def test_lru_cache_time_one_second(self):
+        @timed_lru_cache(seconds=1, maxsize=1)
+        def foo(x):
+            return x
+        assert foo(42) == 42
+        time.sleep(0.25)
+        assert foo(42) == 42
+        time.sleep(1)
+        assert foo(43) == 43

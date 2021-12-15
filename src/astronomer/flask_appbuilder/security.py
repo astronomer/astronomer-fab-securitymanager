@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import json
 from logging import getLogger
 import os
+from time import monotonic_ns
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
+from airflow.exceptions import AirflowConfigException
 from flask import abort, flash, redirect, request, session, url_for
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
@@ -22,10 +27,11 @@ from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
 
 try:
-    from airflow.www_rbac.security import AirflowSecurityManager, EXISTING_ROLES
+    from airflow.www_rbac.security import (EXISTING_ROLES,
+                                           AirflowSecurityManager)
 except ImportError:
     try:
-        from airflow.www.security import AirflowSecurityManager, EXISTING_ROLES
+        from airflow.www.security import EXISTING_ROLES, AirflowSecurityManager
     except ImportError:
         # Airflow not installed, likely we are running setup.py to _install_ things
         class AirflowSecurityManager(object):
@@ -37,6 +43,39 @@ except ImportError:
 __version__ = "1.7.1"
 
 log = getLogger(__name__)
+
+
+def timed_lru_cache(
+    _func=None, *, seconds=300, maxsize=1, typed=False
+):
+    """
+    Extension of functools lru_cache with a timeout
+    seconds (int): Timeout in seconds to clear the WHOLE cache, default = 5 minutes
+    maxsize (int): Maximum Size of the Cache
+    typed (bool): Same value of different type will be a different entry
+    """
+
+    def wrapper_cache(f):
+        f = functools.lru_cache(maxsize=maxsize, typed=typed)(f)
+        f.delta = seconds * 10 ** 9
+        f.expiration = monotonic_ns() + f.delta
+
+        @functools.wraps(f)
+        def wrapped_f(*args, **kwargs):
+            if monotonic_ns() >= f.expiration:
+                f.cache_clear()
+                f.expiration = monotonic_ns() + f.delta
+            return f(*args, **kwargs)
+
+        wrapped_f.cache_info = f.cache_info
+        wrapped_f.cache_clear = f.cache_clear
+        return wrapped_f
+
+    # To allow decorator to be used without arguments
+    if _func is None:
+        return wrapper_cache
+    else:
+        return wrapper_cache(_func)
 
 
 class AstroSecurityManagerMixin(object):
@@ -310,15 +349,36 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         """
         Reload (or load) the JWT signing cert from disk if the file has been modified.
         """
-        stat = os.stat(self.jwt_signing_cert_path)
-        if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
-            log.info('Loading Astronomer JWT signing cert from %s', self.jwt_signing_cert_path)
-            with open(self.jwt_signing_cert_path, 'rb') as fh:
-                self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
-                # This does a second stat, but only when changed, and ensures
-                # that the time we record matches _exactly_ the time of the
-                # file we opened.
-                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
+        try:
+            log.info("Loading Astronomer JWT from houston jwk")
+            self.jwt_signing_cert = self._get_jwt_key_from_houston()
+        except (AirflowConfigException, HTTPError):
+            stat = os.stat(self.jwt_signing_cert_path)
+            if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
+                log.info(
+                    "Loading Astronomer JWT signing cert from %s",
+                    self.jwt_signing_cert_path,
+                )
+                with open(self.jwt_signing_cert_path, "rb") as fh:
+                    self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
+                    # This does a second stat, but only when changed, and ensures
+                    # that the time we record matches _exactly_ the time of the
+                    # file we opened.
+                    self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
+
+    @timed_lru_cache
+    def _get_jwt_key_from_houston(self):
+        from airflow.configuration import conf
+
+        # Example: http://houston-astronomer:8871/v1/.well-known/jwks.json
+        houston_url = conf.get("astronomer", "houston_jwk_url")
+        httprequest = Request(
+            houston_url, method="GET", headers={"Accept": "application/json"}
+        )
+        houston_url_timeout = conf.get("astronomer", "houston_url_timeout", fallback=10)
+        with urlopen(httprequest, timeout=houston_url_timeout) as response:
+            key = response.read().decode()
+        return jwk.JWK.from_json(key=key)
 
     def before_request(self):
         # To avoid making lots of stat requests don't do this for static
