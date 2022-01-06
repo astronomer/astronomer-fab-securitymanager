@@ -46,7 +46,7 @@ easiest way of setting this is via environment variables prefixed with
 `AIRFLOW__ASTRONOMER__`
 
 For a list of current settings check out the inline documentation in
-[security.py](astronomer/flask_appbuilder/security.py)
+[security.py](src/astronomer/flask_appbuilder/security.py)
 
 ## Development
 
