@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import datetime
 import functools
 import json
 from logging import getLogger
@@ -220,6 +221,15 @@ class AstroSecurityManagerMixin(object):
                 user.last_name = ''
                 user.active = True
                 self.manage_user_roles(user, claims['roles'])
+
+            # Similar to the upstream FAB security managers, update
+            # authentication stats so user admins can view them without
+            # having to dig through webserver logs
+            if not user.login_count:
+                user.login_count = 0
+            user.login_count += 1
+            user.last_login = datetime.datetime.now()
+            user.fail_login_count = 0
 
             self.get_session.add(user)
             self.get_session.commit()
