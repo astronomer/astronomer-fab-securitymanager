@@ -1,6 +1,6 @@
 import os
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from flask import g, url_for
 import pytest
@@ -197,6 +197,33 @@ class TestAirflowAstroSecurityManger:
         )
         AirflowAstroSecurityManager(appbuilder)
         mock_urlopen.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "timeout, expected_timeout",
+        [
+            (None, 10.0),
+            (60, 60),
+            (5.0, 5.0),
+        ]
+    )
+    @patch("astronomer.flask_appbuilder.security.jwk.JWK.from_json")
+    @patch("astronomer.flask_appbuilder.security.urlopen")
+    def test_timeout_is_correctly_set(
+        self, mock_urlopen, mock_jwt_json, timeout, expected_timeout, appbuilder, monkeypatch
+    ):
+        monkeypatch.setitem(
+            os.environ,
+            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
+            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
+        )
+        if timeout is not None:
+            monkeypatch.setitem(
+                os.environ,
+                "AIRFLOW__ASTRONOMER__HOUSTON_URL_TIMEOUT",
+                str(timeout),
+            )
+        AirflowAstroSecurityManager(appbuilder)
+        mock_urlopen.assert_called_once_with(ANY, timeout=expected_timeout)
 
 
 class TestCache():
