@@ -385,7 +385,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         httprequest = Request(
             houston_url, method="GET", headers={"Accept": "application/json"}
         )
-        houston_url_timeout = conf.get("astronomer", "houston_url_timeout", fallback=10)
+        houston_url_timeout = conf.getint("astronomer", "houston_url_timeout", fallback=10)
         with urlopen(httprequest, timeout=houston_url_timeout) as response:
             key = response.read().decode()
         return jwk.JWK.from_json(key=key)
