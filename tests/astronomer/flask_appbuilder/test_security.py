@@ -71,7 +71,8 @@ class TestAstroSecurityManagerMixin:
         appbuilder.sm.manage_user_roles.assert_called_with(mocker.ANY, valid_claims['roles'])
 
         appbuilder.session.refresh(g.user)
-        assert g.user.first_name == 'John McAirflower'
+        assert g.user.first_name == 'John'
+        assert g.user.last_name == 'McAirflower'
 
     def test_signed_jwt_misaligned_roles(self, appbuilder, user, signed_jwt, valid_claims, mocker):
         # Testing that when a misalignement between astronomer and the flask session is detected the user is logged out and redirected
@@ -89,7 +90,8 @@ class TestAstroSecurityManagerMixin:
 
         # Using same flask session navigate to home with Viewer role claims
         appbuilder.session.refresh(g.user)
-        assert g.user.first_name == 'John McAirflower'
+        assert g.user.first_name == 'John'
+        assert g.user.last_name == 'McAirflower'
         valid_claims['roles'] = ["Viewer"]
         jwt = signed_jwt(valid_claims)
         resp = self.client.get(url_for('home'), headers=[('Authorization', 'Bearer ' + jwt)])

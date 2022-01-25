@@ -201,14 +201,20 @@ class AstroSecurityManagerMixin(object):
 
         if current_user.is_anonymous:
             user = self.find_user(username=claims['sub'])
+            name = claims['full_name'] or claims['email']
+            if ' ' in name.strip() and ':' not in name:
+                first_name, last_name = name.split(' ')
+            else:
+                first_name = name
+                last_name = name
             if user is None:
                 log.info('Creating airflow user details for %s from JWT', claims['email'])
                 user = self.user_model(
                     # All we have is REMOTE_USER, so we set
                     # the other fields to blank.
                     username=claims['sub'],
-                    first_name=claims['full_name'] or claims['email'],
-                    last_name='',
+                    first_name=first_name,
+                    last_name=last_name,
                     email=claims['email'],
                     roles=[self.find_role(role) for role in claims['roles']],
                     active=True
@@ -217,8 +223,8 @@ class AstroSecurityManagerMixin(object):
                 log.info('Updating airflow user details for %s from JWT', claims['email'])
                 # Update details from JWT
                 user.username = claims['sub']
-                user.first_name = claims['full_name'] or claims['email']
-                user.last_name = ''
+                user.first_name = first_name
+                user.last_name = last_name
                 user.active = True
                 self.manage_user_roles(user, claims['roles'])
 
