@@ -17,7 +17,7 @@ import json
 from logging import getLogger
 import os
 from time import monotonic_ns
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from airflow.exceptions import AirflowConfigException
@@ -368,7 +368,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         try:
             log.info("Loading Astronomer JWT from houston jwk")
             self.jwt_signing_cert = self._get_jwt_key_from_houston()
-        except (AirflowConfigException, HTTPError):
+        except (AirflowConfigException, HTTPError, URLError):
             stat = os.stat(self.jwt_signing_cert_path)
             if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
                 log.info(
