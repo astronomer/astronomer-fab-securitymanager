@@ -326,6 +326,18 @@ if AIRFLOW_VERSION_TUPLE < (2, 3):
             """
             return self.find_permission_view_menu(action_name, resource_name)
 
+        def add_permission_to_role(self, role, permission):
+            """
+            Add an existing permission pair to a role.
+            :param role: The role about to get a new permission.
+            :type role: Role
+            :param permission: The permission pair to add to a role.
+            :type permission: PermissionView
+            :return: None
+            :rtype: None
+            """
+            self.add_permission_role(role, permission)
+
 
 class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityManager, Airflow23CompatibilityMixin):
     """
@@ -440,22 +452,22 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
             if not perm:
                 continue
 
-            self.add_permission_role(self.find_role("User"), perm)
-            self.add_permission_role(self.find_role("Op"), perm)
-            self.add_permission_role(self.find_role("Viewer"), perm)
+            self.add_permission_to_role(self.find_role("User"), perm)
+            self.add_permission_to_role(self.find_role("Op"), perm)
+            self.add_permission_to_role(self.find_role("Viewer"), perm)
 
         for (view_menu, permission) in [
                 ('Airflow', 'can_dagrun_success'),
                 ('Airflow', 'can_dagrun_failed'),
                 ('Airflow', 'can_failed'),
         ]:
-            self.add_permission_role(self.find_role("User"), self.get_permission(permission, view_menu))
-            self.add_permission_role(self.find_role("Op"), self.get_permission(permission, view_menu))
+            self.add_permission_to_role(self.find_role("User"), self.get_permission(permission, view_menu))
+            self.add_permission_to_role(self.find_role("Op"), self.get_permission(permission, view_menu))
 
         for (view_menu, permission) in [
                 ('VariableModelView', 'varexport'),
         ]:
-            self.add_permission_role(self.find_role("Op"), self.get_permission(permission, view_menu))
+            self.add_permission_to_role(self.find_role("Op"), self.get_permission(permission, view_menu))
 
 
 class AuthAstroJWTView(AuthView):
