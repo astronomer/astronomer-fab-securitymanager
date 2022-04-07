@@ -20,6 +20,7 @@ from time import monotonic_ns
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+import airflow
 from airflow.exceptions import AirflowConfigException
 from flask import abort, flash, redirect, request, session, url_for
 from flask_appbuilder.security.manager import AUTH_REMOTE_USER
@@ -44,6 +45,8 @@ except ImportError:
 __version__ = "1.8.4"
 
 log = getLogger(__name__)
+
+AIRFLOW_VERSION_TUPLE = tuple(map(int, airflow.__version__.split('.')[:3]))
 
 
 def timed_lru_cache(
@@ -300,7 +303,14 @@ class AstroSecurityManagerMixin(object):
         pass
 
 
-class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityManager):
+Airflow23CompatibilityMixin = object
+# Only define this if we're using an old version of Airflow
+if AIRFLOW_VERSION_TUPLE < (2, 3):
+    class Airflow23CompatibilityMixin:
+        pass
+
+
+class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityManager, Airflow23CompatibilityMixin):
     """
     This class configures the FAB SecurityManager for use in Airflow, and reads
     settings under the ``[astronomer]`` section (or environment variables prefixed
