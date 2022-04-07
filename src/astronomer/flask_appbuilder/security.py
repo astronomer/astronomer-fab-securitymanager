@@ -307,7 +307,24 @@ Airflow23CompatibilityMixin = object
 # Only define this if we're using an old version of Airflow
 if AIRFLOW_VERSION_TUPLE < (2, 3):
     class Airflow23CompatibilityMixin:
-        pass
+        # We only define the methods that we use
+        #
+        # See https://github.com/apache/airflow/commit/6deebec04c71373f5f99a14a3477fc4d6dc9bcdc
+        # for the mapping
+        #
+        # If we need any other methods, rescue them from:
+        # https://github.com/apache/airflow/blob/86a2a19ad2bdc87a9ad14bb7fde9313b2d7489bb/airflow/www/security.py#L242
+        def get_permission(self, action_name, resource_name):
+            """
+            Gets a permission made with the given action->resource pair, if the permission already exists.
+            :param action_name: Name of action
+            :type action_name: str
+            :param resource_name: Name of resource
+            :type resource_name: str
+            :return: The existing permission
+            :rtype: PermissionView
+            """
+            return self.find_permission_view_menu(action_name, resource_name)
 
 
 class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityManager, Airflow23CompatibilityMixin):
@@ -418,7 +435,7 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                 ('UserInfoEditView', 'can_this_form_get'),
                 ('UserInfoEditView', 'can_this_form_post'),
         ]:
-            perm = self.find_permission_view_menu(permission, view_menu)
+            perm = self.get_permission(permission, view_menu)
             # If we are only using the RemoteUser auth type, then the DB permissions won't exist. Just continue
             if not perm:
                 continue
@@ -432,13 +449,13 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
                 ('Airflow', 'can_dagrun_failed'),
                 ('Airflow', 'can_failed'),
         ]:
-            self.add_permission_role(self.find_role("User"), self.find_permission_view_menu(permission, view_menu))
-            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(self.find_role("User"), self.get_permission(permission, view_menu))
+            self.add_permission_role(self.find_role("Op"), self.get_permission(permission, view_menu))
 
         for (view_menu, permission) in [
                 ('VariableModelView', 'varexport'),
         ]:
-            self.add_permission_role(self.find_role("Op"), self.find_permission_view_menu(permission, view_menu))
+            self.add_permission_role(self.find_role("Op"), self.get_permission(permission, view_menu))
 
 
 class AuthAstroJWTView(AuthView):
