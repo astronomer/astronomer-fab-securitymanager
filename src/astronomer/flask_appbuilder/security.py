@@ -27,6 +27,7 @@ from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
+from packaging.version import Version
 
 try:
     from airflow.www_rbac.security import (EXISTING_ROLES,
@@ -46,7 +47,7 @@ __version__ = "1.9.1"
 
 log = getLogger(__name__)
 
-AIRFLOW_VERSION_TUPLE = tuple(map(int, airflow.__version__.split('.')[:3]))
+AIRFLOW_VERSION_TUPLE = Version(airflow.__version__).release
 
 
 def timed_lru_cache(
