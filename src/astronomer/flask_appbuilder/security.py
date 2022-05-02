@@ -16,7 +16,6 @@ import functools
 import json
 from logging import getLogger
 import os
-from packaging.version import Version
 from time import monotonic_ns
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -28,6 +27,7 @@ from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_appbuilder.security.views import AuthView, expose
 from flask_login import current_user, login_user, logout_user
 from jwcrypto import jwk, jws, jwt
+from packaging.version import Version
 
 try:
     from airflow.www_rbac.security import (EXISTING_ROLES,
