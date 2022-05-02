@@ -16,6 +16,7 @@ import functools
 import json
 from logging import getLogger
 import os
+from packaging.version import Version
 from time import monotonic_ns
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -46,7 +47,7 @@ __version__ = "1.9.1"
 
 log = getLogger(__name__)
 
-AIRFLOW_VERSION_TUPLE = tuple(map(int, airflow.__version__.split('.')[:3]))
+AIRFLOW_VERSION = Version(airflow.__version__)
 
 
 def timed_lru_cache(
@@ -305,7 +306,7 @@ class AstroSecurityManagerMixin(object):
 
 Airflow23CompatibilityMixin = object
 # Only define this if we're using an old version of Airflow
-if AIRFLOW_VERSION_TUPLE < (2, 3):
+if AIRFLOW_VERSION < Version("2.3.0"):
     class Airflow23CompatibilityMixin:
         # We only define the methods that we use
         #
