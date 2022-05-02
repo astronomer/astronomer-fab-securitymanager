@@ -47,7 +47,7 @@ __version__ = "1.9.1"
 
 log = getLogger(__name__)
 
-AIRFLOW_VERSION = Version(airflow.__version__)
+AIRFLOW_VERSION_TUPLE = Version(airflow.__version__).release
 
 
 def timed_lru_cache(
@@ -306,7 +306,7 @@ class AstroSecurityManagerMixin(object):
 
 Airflow23CompatibilityMixin = object
 # Only define this if we're using an old version of Airflow
-if AIRFLOW_VERSION < Version("2.3.0"):
+if AIRFLOW_VERSION_TUPLE < (2, 3):
     class Airflow23CompatibilityMixin:
         # We only define the methods that we use
         #
