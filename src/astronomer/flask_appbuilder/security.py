@@ -400,28 +400,33 @@ class AirflowAstroSecurityManager(AstroSecurityManagerMixin, AirflowSecurityMana
         Reload (or load) the JWT signing cert from disk if the file has been modified.
         """
         try:
-            log.info("Loading Astronomer JWT from houston jwk")
             self.jwt_signing_cert = self._get_jwt_key_from_houston()
+            if self.jwt_signing_cert:
+                return
         except (AirflowConfigException, HTTPError, URLError):
-            stat = os.stat(self.jwt_signing_cert_path)
-            if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
-                log.info(
-                    "Loading Astronomer JWT signing cert from %s",
-                    self.jwt_signing_cert_path,
-                )
-                with open(self.jwt_signing_cert_path, "rb") as fh:
-                    self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
-                    # This does a second stat, but only when changed, and ensures
-                    # that the time we record matches _exactly_ the time of the
-                    # file we opened.
-                    self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
+            pass
+        stat = os.stat(self.jwt_signing_cert_path)
+        if stat.st_mtime_ns > self.jwt_signing_cert_mtime:
+            log.info(
+                "Loading Astronomer JWT signing cert from %s",
+                self.jwt_signing_cert_path,
+            )
+            with open(self.jwt_signing_cert_path, "rb") as fh:
+                self.jwt_signing_cert = jwk.JWK.from_pem(fh.read())
+                # This does a second stat, but only when changed, and ensures
+                # that the time we record matches _exactly_ the time of the
+                # file we opened.
+                self.jwt_signing_cert_mtime = os.fstat(fh.fileno()).st_mtime_ns
 
     @timed_lru_cache
     def _get_jwt_key_from_houston(self):
         from airflow.configuration import conf
 
         # Example: http://houston-astronomer:8871/v1/.well-known/jwks.json
-        houston_url = conf.get("astronomer", "houston_jwk_url")
+        houston_url = conf.get("astronomer", "houston_jwk_url", fallback=None)
+        if not houston_url:
+            return None
+        log.info("Loading Astronomer JWT from houston jwk")
         httprequest = Request(
             houston_url, method="GET", headers={"Accept": "application/json"}
         )
