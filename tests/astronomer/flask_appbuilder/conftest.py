@@ -2,7 +2,7 @@ import os
 import time
 import uuid
 
-import airflow.www.fab_security.sqla.manager
+import airflow.www.security
 from jwcrypto import jwk, jwt
 import pytest
 from sqlalchemy import event
@@ -110,7 +110,7 @@ def run_in_transaction(appbuilder, db, request):
 
 @pytest.fixture(scope='module')
 def sm_class(jwt_signing_key, allowed_audience):
-    class SM(AstroSecurityManagerMixin, airflow.www.fab_security.sqla.manager.SecurityManager):
+    class SM(AstroSecurityManagerMixin, airflow.www.security.AirflowSecurityManager):
         def count_users(self):
             # Silence the log message about no users
             return 1
