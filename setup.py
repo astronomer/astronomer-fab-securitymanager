@@ -94,6 +94,7 @@ setup(
     ],
     extras_require={
         'test': [
+            'apache-airflow>=2.3.0',
             'flake8',
             'flake8-import-order>=0.18',
             'pytest',
