@@ -82,7 +82,7 @@ setup(
     install_requires=[
         'apache-airflow>=1.10.0',
         # FAB is pulled in from Airflow
-        'jwcrypto~=0.6.0',
+        'jwcrypto>0.6.0',
         'requests',
     ],
     setup_requires=[
