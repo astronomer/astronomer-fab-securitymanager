@@ -43,7 +43,7 @@ except ImportError:
         EXISTING_ROLES = []
 
 
-__version__ = "1.9.2"
+__version__ = "1.9.3"
 
 log = getLogger(__name__)
 
