@@ -82,7 +82,7 @@ setup(
     install_requires=[
         'apache-airflow>=1.10.0',
         # FAB is pulled in from Airflow
-        'jwcrypto~=0.6.0',
+        'jwcrypto>0.6.0',
         'requests',
     ],
     setup_requires=[
@@ -94,6 +94,7 @@ setup(
     ],
     extras_require={
         'test': [
+            'apache-airflow>=2.3.0',
             'flake8',
             'flake8-import-order>=0.18',
             'pytest',

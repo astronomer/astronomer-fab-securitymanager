@@ -2,14 +2,14 @@ import os
 import time
 import uuid
 
-import flask_appbuilder
-import flask_appbuilder.security.sqla.manager
+import airflow.www.security
 from jwcrypto import jwk, jwt
 import pytest
 from sqlalchemy import event
 
 from astronomer.flask_appbuilder import current_user_backend
 from astronomer.flask_appbuilder.security import AstroSecurityManagerMixin
+
 
 AUDIENCE = 'airflow.example.com'
 
@@ -53,15 +53,12 @@ def appbuilder(app, db, sm_class):
 
     appbuilder = AppBuilder(app, db.session, security_manager_class=sm_class)
 
-    resource = appbuilder.sm.viewmenu_model(name='Website')
-    perm = appbuilder.sm.permission_model(name='can_read')
-    perm_view = appbuilder.sm.permissionview_model(view_menu=resource, permission=perm)
-    appbuilder.session.add(resource)
+    permission = appbuilder.sm.create_permission("can_read", 'Website')
 
     for r in ('Admin', 'Op', 'User', 'Viewer'):
         r = appbuilder.sm.add_role(r)
 
-        r.permissions.append(perm_view)
+        r.permissions.append(permission)
     """
     from sqlalchemy import event
     @event.listens_for(db.engine, 'before_cursor_execute')
@@ -113,7 +110,7 @@ def run_in_transaction(appbuilder, db, request):
 
 @pytest.fixture(scope='module')
 def sm_class(jwt_signing_key, allowed_audience):
-    class SM(AstroSecurityManagerMixin, flask_appbuilder.security.sqla.manager.SecurityManager):
+    class SM(AstroSecurityManagerMixin, airflow.www.security.AirflowSecurityManager):
         def count_users(self):
             # Silence the log message about no users
             return 1
