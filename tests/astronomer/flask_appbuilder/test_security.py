@@ -9,6 +9,79 @@ from tests.astronomer.flask_appbuilder.conftest import AUDIENCE
 from astronomer.flask_appbuilder.security import AirflowAstroSecurityManager, timed_lru_cache
 
 
+@pytest.mark.usefixtures('run_in_transaction', 'airflow_config')
+class TestAirflowAstroSecurityManger:
+    def test_default_config(self, appbuilder, jwt_signing_keypair, allowed_audience):
+        sm = AirflowAstroSecurityManager(appbuilder)
+
+        assert sm.allowed_audience == allowed_audience
+        assert sm.jwt_signing_cert.thumbprint() == jwt_signing_keypair.thumbprint()
+        assert sm.validity_leeway == 60
+
+    @pytest.mark.parametrize("leeway", [0, 120])
+    def test_leeway(self, appbuilder, monkeypatch, leeway):
+        monkeypatch.setitem(os.environ, 'AIRFLOW__ASTRONOMER__JWT_VALIDITY_LEEWAY', str(leeway))
+        sm = AirflowAstroSecurityManager(appbuilder)
+
+        assert sm.validity_leeway == leeway
+
+    @patch("astronomer.flask_appbuilder.security.urlopen")
+    def test_reload_jwt_signing_cert_valid_key(
+        self, mock_urlopen, appbuilder, monkeypatch
+    ):
+        mock = MagicMock()
+        mock.getcode.return_value = 200
+        mock.read.return_value = b"""
+{
+  "kty":"EC",
+  "crv":"P-256",
+  "x":"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
+  "y":"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
+  "kid":"Public key used in JWS spec Appendix A.3 example"
+}
+"""
+        mock.__enter__.return_value = mock
+        mock_urlopen.return_value = mock
+        monkeypatch.setitem(
+            os.environ,
+            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
+            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
+        )
+        # let's make it fallback to ask houston jwk houston api
+        monkeypatch.setitem(
+            os.environ, "AIRFLOW__ASTRONOMER__JWT_SIGNING_CERT", "/nonexisting"
+        )
+        AirflowAstroSecurityManager(appbuilder)
+        mock_urlopen.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "timeout, expected_timeout",
+        [
+            (None, 10.0),
+            (60, 60),
+            (5.0, 5.0),
+        ]
+    )
+    @patch("astronomer.flask_appbuilder.security.jwk.JWK.from_json")
+    @patch("astronomer.flask_appbuilder.security.urlopen")
+    def test_timeout_is_correctly_set(
+        self, mock_urlopen, mock_jwt_json, timeout, expected_timeout, appbuilder, monkeypatch
+    ):
+        monkeypatch.setitem(
+            os.environ,
+            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
+            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
+        )
+        if timeout is not None:
+            monkeypatch.setitem(
+                os.environ,
+                "AIRFLOW__ASTRONOMER__HOUSTON_URL_TIMEOUT",
+                str(timeout),
+            )
+        AirflowAstroSecurityManager(appbuilder)
+        mock_urlopen.assert_called_once_with(ANY, timeout=expected_timeout)
+
+
 @pytest.mark.usefixtures('client_class', 'run_in_transaction')
 class TestAstroSecurityManagerMixin:
 
@@ -151,79 +224,6 @@ class TestAstroSecurityManagerMixin:
             sm = appbuilder.sm
             assert sm.has_access('can_create', 'Users') is False
             assert sm.has_access('can_read', 'Website') is True
-
-
-@pytest.mark.usefixtures('run_in_transaction', 'airflow_config')
-class TestAirflowAstroSecurityManger:
-    def test_default_config(self, appbuilder, jwt_signing_keypair, allowed_audience):
-        sm = AirflowAstroSecurityManager(appbuilder)
-
-        assert sm.allowed_audience == allowed_audience
-        assert sm.jwt_signing_cert.thumbprint() == jwt_signing_keypair.thumbprint()
-        assert sm.validity_leeway == 60
-
-    @pytest.mark.parametrize("leeway", [0, 120])
-    def test_leeway(self, appbuilder, monkeypatch, leeway):
-        monkeypatch.setitem(os.environ, 'AIRFLOW__ASTRONOMER__JWT_VALIDITY_LEEWAY', str(leeway))
-        sm = AirflowAstroSecurityManager(appbuilder)
-
-        assert sm.validity_leeway == leeway
-
-    @patch("astronomer.flask_appbuilder.security.urlopen")
-    def test_reload_jwt_signing_cert_valid_key(
-        self, mock_urlopen, appbuilder, monkeypatch
-    ):
-        mock = MagicMock()
-        mock.getcode.return_value = 200
-        mock.read.return_value = b"""
-{
-  "kty":"EC",
-  "crv":"P-256",
-  "x":"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
-  "y":"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
-  "kid":"Public key used in JWS spec Appendix A.3 example"
-}
-"""
-        mock.__enter__.return_value = mock
-        mock_urlopen.return_value = mock
-        monkeypatch.setitem(
-            os.environ,
-            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
-            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
-        )
-        # let's make it fallback to ask houston jwk houston api
-        monkeypatch.setitem(
-            os.environ, "AIRFLOW__ASTRONOMER__JWT_SIGNING_CERT", "/nonexisting"
-        )
-        AirflowAstroSecurityManager(appbuilder)
-        mock_urlopen.assert_called_once()
-
-    @pytest.mark.parametrize(
-        "timeout, expected_timeout",
-        [
-            (None, 10.0),
-            (60, 60),
-            (5.0, 5.0),
-        ]
-    )
-    @patch("astronomer.flask_appbuilder.security.jwk.JWK.from_json")
-    @patch("astronomer.flask_appbuilder.security.urlopen")
-    def test_timeout_is_correctly_set(
-        self, mock_urlopen, mock_jwt_json, timeout, expected_timeout, appbuilder, monkeypatch
-    ):
-        monkeypatch.setitem(
-            os.environ,
-            "AIRFLOW__ASTRONOMER__HOUSTON_JWK_URL",
-            "http://houston-astronomer:8871/v1/.well-known/jwks.json",
-        )
-        if timeout is not None:
-            monkeypatch.setitem(
-                os.environ,
-                "AIRFLOW__ASTRONOMER__HOUSTON_URL_TIMEOUT",
-                str(timeout),
-            )
-        AirflowAstroSecurityManager(appbuilder)
-        mock_urlopen.assert_called_once_with(ANY, timeout=expected_timeout)
 
 
 class TestCache():
